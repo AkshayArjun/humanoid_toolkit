@@ -1,0 +1,25 @@
+[project]
+name = "humkit"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "AkshayArjun", email = "aakshay1114@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "mujoco>=3.17.0",
+    "numpy>=2.2.6",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pre-commit>=4.6.2",
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
