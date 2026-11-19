@@ -1,0 +1,16 @@
+robot:
+  name: unitree_g1
+  hanging: true
+  torque_control: true
+
+controller:
+  type: composite
+  children:
+    - type: pd
+      kp: 100.0
+      kd: 10.0
+    - type: gravity_comp
+
+sim:
+  viewer: true
+  steps: null
