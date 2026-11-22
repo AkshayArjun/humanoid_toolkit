@@ -5,6 +5,8 @@ import mujoco as mj
 import numpy as np
 
 from humkit.error import InvalidValueError, ModelLoadError, StateDimensionError
+from humkit.geometry.se3 import SE3
+from humkit.geometry.so3 import SO3
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,10 @@ class Robot:
         if u.shape != (self._model.nu,):
             raise StateDimensionError(f"Expected u of shape ({self._model.nu},), got {u.shape}")
         self._data.ctrl[:] = u
+
+    def body_pose(self, name: str) -> SE3:
+        body = self._data.body(name)
+        return SE3(SO3(body.xquat.copy()), body.xpos.copy())
 
     @property
     def joint_names(self) -> list[str]:
