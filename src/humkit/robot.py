@@ -1,7 +1,12 @@
+import logging
 from pathlib import Path
 
 import mujoco as mj
 import numpy as np
+
+from humkit.error import InvalidValueError, ModelLoadError, StateDimensionError
+
+logger = logging.getLogger(__name__)
 
 MENAGERIE_DIR = Path(__file__).resolve().parents[3] / "mujoco_menagerie"
 
@@ -26,9 +31,9 @@ class Robot:
         q = np.asarray(q, dtype=float)
         dq = np.asarray(dq, dtype=float)
         if q.shape != (self._model.nq,):
-            raise ValueError(f"Expected q of shape ({self._model.nq},), got {q.shape}")
+            raise StateDimensionError(f"Expected q of shape ({self._model.nq},), got {q.shape}")
         if dq.shape != (self._model.nv,):
-            raise ValueError(f"Expected dq of shape ({self._model.nv},), got {dq.shape}")
+            raise StateDimensionError(f"Expected dq of shape ({self._model.nv},), got {dq.shape}")
 
         q = q.copy()
         q[3:7] /= np.linalg.norm(q[3:7])
@@ -43,7 +48,7 @@ class Robot:
     def set_ctrl(self, u: np.ndarray) -> None:
         u = np.asarray(u, dtype=float)
         if u.shape != (self._model.nu,):
-            raise ValueError(f"Expected u of shape ({self._model.nu},), got {u.shape}")
+            raise StateDimensionError(f"Expected u of shape ({self._model.nu},), got {u.shape}")
         self._data.ctrl[:] = u
 
     @property
@@ -84,32 +89,34 @@ class Robot:
         scene_file = robot_dir / "scene.xml"
 
         if not scene_file.exists():
-            raise FileNotFoundError(
+            raise ModelLoadError(
                 f"Scene file not found: {scene_file}. "
                 "Clone mujoco_menagerie next to the humkit repo."
             )
-        spec = mj.MjSpec.from_file(str(scene_file))
-        if hanging:
-            weld = spec.add_equality()
-            weld.type = mj.mjtEq.mjEQ_WELD
-            weld.objtype = mj.mjtObj.mjOBJ_BODY
-            weld.name1 = "pelvis"
+        try:
+            spec = mj.MjSpec.from_file(str(scene_file))
+            if hanging:
+                weld = spec.add_equality()
+                weld.type = mj.mjtEq.mjEQ_WELD
+                weld.objtype = mj.mjtObj.mjOBJ_BODY
+                weld.name1 = "pelvis"
 
-        if torque_control:
-            for act in spec.actuators:
-                joint = spec.joint(act.target)
-                lo, hi = joint.actfrcrange
-                if hi <= lo:
-                    raise ValueError(f"No torque limit for joint {act.target!r}")
-                act.gaintype = mj.mjtGain.mjGAIN_FIXED
-                act.gainprm[0] = 1.0
-                act.biastype = mj.mjtBias.mjBIAS_NONE
-                act.biasprm[:3] = 0.0
-                act.ctrlrange = [lo, hi]
-                if hi > lo:
-                    act.ctrlrange = act.forcerange
-                else:
-                    raise ValueError(f"Actuator {act.name!r} has no forcerange; set torque limits")
-        model = spec.compile()
+            if torque_control:
+                for act in spec.actuators:
+                    joint = spec.joint(act.target)
+                    lo, hi = joint.actfrcrange
+                    if hi <= lo:
+                        raise InvalidValueError(f"No torque limit for joint {act.target!r}")
+                    act.gaintype = mj.mjtGain.mjGAIN_FIXED
+                    act.gainprm[0] = 1.0
+                    act.biastype = mj.mjtBias.mjBIAS_NONE
+                    act.biasprm[:3] = 0.0
+                    act.ctrlrange = [lo, hi]
+            model = spec.compile()
+        except ValueError as err:
+            raise ModelLoadError(f"Could not load {robot_name}: {err}") from err
 
+        logger.info(
+            "Loaded %s (hanging=%s, torque_control=%s)", robot_name, hanging, torque_control
+        )
         return cls(model, name=robot_name)

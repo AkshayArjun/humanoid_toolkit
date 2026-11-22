@@ -7,6 +7,7 @@ from humkit.controllers.composition import CompositeController
 from humkit.controllers.controller_abc import ControllerABC
 from humkit.controllers.gravity_comp import GravityCompController
 from humkit.controllers.pd_control import PDController
+from humkit.error import ControllerError
 from humkit.robot import Robot
 
 
@@ -23,4 +24,4 @@ def build_controller(cfg: dict[str, Any], robot: Robot) -> ControllerABC:
         return GravityCompController()
     if kind == "composite":
         return CompositeController([build_controller(c, robot) for c in cfg["children"]])
-    raise ValueError(f"Unknown controller type: {kind!r}")
+    raise ControllerError(f"Unknown controller type: {kind!r}")
