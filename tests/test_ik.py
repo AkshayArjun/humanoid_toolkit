@@ -56,7 +56,7 @@ def test_already_at_target_returns_immediately(free_g1):
 def test_reaches_random_reachable_targets(free_g1):
     rng = np.random.default_rng(0)
     q0 = standing_q()
-    for _ in range(20):
+    for _ in range(100):
         q_true = q0.copy()
         q_true[7:] += rng.uniform(-0.3, 0.3, 29)
         target = free_g1.fk(q_true)[HAND]

@@ -12,7 +12,13 @@ Handoff from the planning chat. Read with `CLAUDE.md` and `docs/bootcamp-plan.md
   `MjModel`, reference FK three ways (recursive, explicit stack, topological loop) in
   `kinematics/reference.py`, and `Robot.forward_kinematics(q)` via `mj_kinematics` on a scratch
   `MjData`. Both match MuJoCo to 1e-9. Branch `feat/kinematic-tree`, stacked on `chore/mypy-strict`.
-- **Next: Day 10**, Jacobians and IK (NumPy + complexity).
+- Day 10 (Jacobians and IK): reference geometric Jacobian in `kinematics/reference_jacobians.py`
+  (matches `mj_jacBody` to 1e-9); `Robot.jac` and `Robot.joint_limits`; `kinematics/ik.py` with
+  `world_error`, `dls_step` and `ik` (joints only, clamped), converging on 100/100 random reachable
+  targets in ~5 iterations. Benchmark and Big-O in `notes/day10.md`. Branch `feat/jacobians`.
+  Mink comparison (stretch) not done.
+- **Next: Day 11**, extensible design + design patterns. Candidate: an IK-tracking controller
+  (differential IK each tick, PD with a velocity reference).
 - The GitHub repo was renamed from `humkit` to `humanoid_toolkit`; the Python package is still `humkit`.
 
 ## Working style
@@ -47,6 +53,9 @@ Handoff from the planning chat. Read with `CLAUDE.md` and `docs/bootcamp-plan.md
 | Controllers take a `RobotLike` `Protocol`, not `Robot` | Structural typing: `FakeRobot` satisfies it with no inheritance |
 | `KinematicTree` stores links in MuJoCo's body order (parent index < child index) | That order is topological, so the tree builds and FK runs in one loop |
 | `Robot.forward_kinematics` reuses one scratch `MjData` created in `__init__` | Never touches the live sim; allocating `MjData` costs ~330 µs, the FK itself a few µs |
+| IK error is world-frame `[Δp; R_c·Log(R_cᵀR_t)]`, not `SE3.minus` | Must match `mj_jacBody`'s frame; `minus` is local and its ρ includes `Jl(θ)⁻¹` |
+| IK uses `J[:, 6:]` and updates `q[7:]` only | No actuator on the floating base; with base columns, DLS slides the pelvis instead of reaching |
+| `ik` is typed against a `KinematicModel` Protocol (`fk`, `jac`, `joint_limits`) | Tests use a one-slide fake robot whose answers are known by hand |
 | `load_config` raises `ConfigError` unless the YAML top level is a mapping | `yaml.safe_load` returns `Any`; mypy surfaced a missing runtime check |
 
 ## Gotchas already hit
@@ -61,6 +70,9 @@ Handoff from the planning chat. Read with `CLAUDE.md` and `docs/bootcamp-plan.md
 - `assert_allclose` has `atol=0` by default; set `atol` when expected values contain zeros.
 - Test against independently known values (hand-worked or geometric facts), never the formula under test.
 - `quat_log` flips `q` to `w >= 0` (q and −q are the same rotation).
+- A new `MjData` has zero poses and forces until `mj_forward`; `Robot.__init__` now runs it.
+- Undamped DLS raises `LinAlgError` when J is rank-deficient (J Jᵀ singular); damping fixes it.
+- `git add -A` sweeps in unrelated half-finished edits; stage files by name.
 
 ## Notes on concepts covered
 

@@ -222,15 +222,15 @@ Every day has the same four parts, so you always know what to read, what to buil
 **Waypoints:**
 
 - [x] Compute the geometric Jacobian of a hand from your tree. Compare it with `mj_jacBody`.
-- [ ] Implement damped least-squares IK for one hand: `dq = Jᵀ(JJᵀ + λ²I)⁻¹ e`.
-- [ ] Clamp to joint limits after every step.
-- [ ] Test convergence on 100 random reachable targets (generate them with FK from random `q`).
+- [x] Implement damped least-squares IK for one hand: `dq = Jᵀ(JJᵀ + λ²I)⁻¹ e`.
+- [x] Clamp to joint limits after every step.
+- [x] Test convergence on 100 random reachable targets (generate them with FK from random `q`).
 - [x] Time `np.linalg.inv` vs `np.linalg.solve` on the same system. Write down the Big-O of each step.
 
 **Production path:**
 
-- [ ] Production Jacobians come from MuJoCo on the scratch data: `mj_fwdPosition`, then `mj_jacBody` (and `mj_jacSubtreeCom` for the CoM). Keep yours as the reference in tests.
-- [ ] IK stays yours, since MuJoCo has no IK solver, but runs on MuJoCo's Jacobians. Stretch goal: compare its results against mink on the same targets.
+- [x] Production Jacobians come from MuJoCo on the scratch data: `mj_fwdPosition`, then `mj_jacBody` (and `mj_jacSubtreeCom` for the CoM). Keep yours as the reference in tests.
+- [x] IK stays yours, since MuJoCo has no IK solver, but runs on MuJoCo's Jacobians. Stretch goal: compare its results against mink on the same targets.
 
 **If stuck:** reference to compare against after you've tried: [mink](https://github.com/kevinzakka/mink), a differential IK library built on MuJoCo.
 
