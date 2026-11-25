@@ -204,8 +204,8 @@ Every day has the same four parts, so you always know what to read, what to buil
 
 **Production path:**
 
-- [ ] Add `Robot.forward_kinematics(q) -> dict[str, SE3]` that writes `q` into a scratch `MjData` (created once in `__init__`) and calls `mj_kinematics`. The live simulation is never touched.
-- [ ] Move your tree FK to a reference module (e.g. `humkit/kinematics/reference.py`) and keep the 1e-9 test comparing the two.
+- [x] Add `Robot.forward_kinematics(q) -> dict[str, SE3]` that writes `q` into a scratch `MjData` (created once in `__init__`) and calls `mj_kinematics`. The live simulation is never touched.
+- [x] Move your tree FK to a reference module (e.g. `humkit/kinematics/reference.py`) and keep the 1e-9 test comparing the two.
 
 **If stuck:** MJCF can use `<default>` classes and `<include>` files, which make raw parsing hard. Start by reading the tree structure from `MjModel` (`body_parentid`, `jnt_axis`, `body_pos`, `body_quat`). Parse the XML yourself only as a stretch.
 

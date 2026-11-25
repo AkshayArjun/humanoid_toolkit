@@ -8,9 +8,11 @@ Handoff from the planning chat. Read with `CLAUDE.md` and `docs/bootcamp-plan.md
 - Day 8 (types): `mypy --strict` passes on `src/` (branch `chore/mypy-strict`). `FloatArray` alias in
   `humkit/types.py`; `RobotLike` Protocol in `controllers/controller_abc.py`; mypy runs in pre-commit.
   Still open: the 3-line note on nominal vs structural typing (`notes/day08.md`).
-- **Next: Day 9**, the kinematic tree. Read the tree from `MjModel`, write recursive and
-  explicit-stack FK, check it against MuJoCo to 1e-9, then add the production path
-  (`Robot.forward_kinematics` via a scratch `MjData` + `mj_kinematics`).
+- Day 9 (kinematic tree): `humkit.kinematics` has `KinematicTree`/`Link`/`Joint` built from
+  `MjModel`, reference FK three ways (recursive, explicit stack, topological loop) in
+  `kinematics/reference.py`, and `Robot.forward_kinematics(q)` via `mj_kinematics` on a scratch
+  `MjData`. Both match MuJoCo to 1e-9. Branch `feat/kinematic-tree`, stacked on `chore/mypy-strict`.
+- **Next: Day 10**, Jacobians and IK (NumPy + complexity).
 - The GitHub repo was renamed from `humkit` to `humanoid_toolkit`; the Python package is still `humkit`.
 
 ## Working style
@@ -43,6 +45,8 @@ Handoff from the planning chat. Read with `CLAUDE.md` and `docs/bootcamp-plan.md
 | Arrays inside `SO3`/`SE3` are read-only | `frozen=True` alone doesn't stop `R.quat[0] = 5` |
 | `FloatArray = NDArray[np.float64]`; MuJoCo untyped (`ignore_missing_imports`), converted to typed values inside `Robot` | One `Any` boundary, in the one module that touches MuJoCo |
 | Controllers take a `RobotLike` `Protocol`, not `Robot` | Structural typing: `FakeRobot` satisfies it with no inheritance |
+| `KinematicTree` stores links in MuJoCo's body order (parent index < child index) | That order is topological, so the tree builds and FK runs in one loop |
+| `Robot.forward_kinematics` reuses one scratch `MjData` created in `__init__` | Never touches the live sim; allocating `MjData` costs ~330 µs, the FK itself a few µs |
 | `load_config` raises `ConfigError` unless the YAML top level is a mapping | `yaml.safe_load` returns `Any`; mypy surfaced a missing runtime check |
 
 ## Gotchas already hit

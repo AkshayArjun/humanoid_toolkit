@@ -18,6 +18,8 @@ class Robot:
     def __init__(self, model: mj.MjModel, name: str | None = None):
         self._model = model
         self._data = mj.MjData(self._model)
+        self._scratch = mj.MjData(self._model)  # for queries that must not touch the live state
+        self._body_names = [str(model.body(i).name) for i in range(model.nbody)]
         self._name = name if name is not None else self._model.name
 
     def __repr__(self) -> str:
@@ -57,6 +59,19 @@ class Robot:
     def body_pose(self, name: str) -> SE3:
         body = self._data.body(name)
         return SE3(SO3(body.xquat.copy()), body.xpos.copy())
+
+    def forward_kinematics(self, q: FloatArray) -> dict[str, SE3]:
+        """World pose of every body for configuration q. The live simulation is not touched."""
+        q = np.asarray(q, dtype=np.float64)
+        if q.shape != (self._model.nq,):
+            raise StateDimensionError(f"Expected q of shape ({self._model.nq},), got {q.shape}")
+
+        self._scratch.qpos[:] = q
+        mj.mj_kinematics(self._model, self._scratch)
+        return {
+            name: SE3(SO3(self._scratch.xquat[i]), self._scratch.xpos[i])
+            for i, name in enumerate(self._body_names)
+        }
 
     @property
     def joint_names(self) -> list[str]:
