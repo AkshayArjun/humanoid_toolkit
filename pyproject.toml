@@ -1,7 +1,7 @@
 [project]
 name = "humkit"
 version = "0.1.0"
-description = "Add your description here"
+description = "Whole-body control stack for the Unitree G1 humanoid in MuJoCo."
 readme = "README.md"
 authors = [
     { name = "AkshayArjun", email = "aakshay1114@gmail.com" }
@@ -26,6 +26,7 @@ dev = [
     "pytest>=9.2.0",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.5",
+    "types-pyyaml>=6.0.12.20261122",
 ]
 
 [tool.ruff]
@@ -33,3 +34,21 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"] # errors, pyflakes, import sorting, bugbear, pyupgrade
+
+[tool.mypy]
+strict = true
+
+[tool.coverage.run]
+omit = ["src/humkit/view.py", "src/humkit/run.py"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[[tool.mypy.overrides]]
+# MuJoCo ships no type stubs. Robot is the only module that touches it, so the
+# Any values it produces are converted to typed values there.
+module = ["mujoco", "mujoco.*"]
+ignore_missing_imports = true

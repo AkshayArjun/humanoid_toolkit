@@ -7,6 +7,7 @@ import numpy as np
 from humkit.error import InvalidValueError, ModelLoadError, StateDimensionError
 from humkit.geometry.se3 import SE3
 from humkit.geometry.so3 import SO3
+from humkit.types import FloatArray
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,8 @@ class Robot:
     def __init__(self, model: mj.MjModel, name: str | None = None):
         self._model = model
         self._data = mj.MjData(self._model)
+        self._temp = mj.MjData(self._model)
+        self._body_names = [str(model.body(i).name) for i in range(model.nbody)]
         self._name = name if name is not None else self._model.name
 
     def __repr__(self) -> str:
@@ -29,9 +32,9 @@ class Robot:
         for _ in range(n):
             mj.mj_step(self._model, self._data)
 
-    def set_state(self, q: np.ndarray, dq: np.ndarray) -> None:
-        q = np.asarray(q, dtype=float)
-        dq = np.asarray(dq, dtype=float)
+    def set_state(self, q: FloatArray, dq: FloatArray) -> None:
+        q = np.asarray(q, dtype=np.float64)
+        dq = np.asarray(dq, dtype=np.float64)
         if q.shape != (self._model.nq,):
             raise StateDimensionError(f"Expected q of shape ({self._model.nq},), got {q.shape}")
         if dq.shape != (self._model.nv,):
@@ -47,8 +50,8 @@ class Robot:
     def _mujoco_handles(self) -> tuple[mj.MjModel, mj.MjData]:
         return self._model, self._data
 
-    def set_ctrl(self, u: np.ndarray) -> None:
-        u = np.asarray(u, dtype=float)
+    def set_ctrl(self, u: FloatArray) -> None:
+        u = np.asarray(u, dtype=np.float64)
         if u.shape != (self._model.nu,):
             raise StateDimensionError(f"Expected u of shape ({self._model.nu},), got {u.shape}")
         self._data.ctrl[:] = u
@@ -56,6 +59,18 @@ class Robot:
     def body_pose(self, name: str) -> SE3:
         body = self._data.body(name)
         return SE3(SO3(body.xquat.copy()), body.xpos.copy())
+
+    def forward_kinematics(self, q: FloatArray) -> dict[str, SE3]:
+        q = np.asarray(q, dtype=np.float64)
+        if q.shape != (self._model.nq,):
+            raise StateDimensionError(f"Expected q of shape ({self._model.nq},), got {q.shape}")
+
+        self._temp.qpos[:] = q
+        mj.mj_kinematics(self._model, self._temp)
+        return {
+            name: SE3(SO3(self._temp.xquat[i]), self._temp.xpos[i])
+            for i, name in enumerate(self._body_names)
+        }
 
     @property
     def joint_names(self) -> list[str]:
@@ -66,26 +81,26 @@ class Robot:
         ]
 
     @property
-    def base_pose(self) -> tuple[np.ndarray, np.ndarray]:
-        position = self._data.qpos[0:3].copy()  # x, y, z
-        orientation = self._data.qpos[3:7].copy()  # quaternion (w, x, y, z)
+    def base_pose(self) -> tuple[FloatArray, FloatArray]:
+        position = np.array(self._data.qpos[0:3], dtype=np.float64)  # x, y, z
+        orientation = np.array(self._data.qpos[3:7], dtype=np.float64)  # quaternion (w, x, y, z)
         return position, orientation
 
     @property
-    def q(self) -> np.ndarray:
-        return self._data.qpos.copy()
+    def q(self) -> FloatArray:
+        return np.array(self._data.qpos, dtype=np.float64)
 
     @property
-    def dq(self) -> np.ndarray:
-        return self._data.qvel.copy()
+    def dq(self) -> FloatArray:
+        return np.array(self._data.qvel, dtype=np.float64)
 
     @property
     def nu(self) -> int:
-        return self._model.nu
+        return int(self._model.nu)
 
     @property
-    def bias_torques(self) -> np.ndarray:
-        return self._data.qfrc_bias[6:].copy()
+    def bias_torques(self) -> FloatArray:
+        return np.array(self._data.qfrc_bias[6:], dtype=np.float64)
 
     @classmethod
     def from_menagerie(

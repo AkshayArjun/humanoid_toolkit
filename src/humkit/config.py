@@ -7,13 +7,16 @@ from humkit.controllers.composition import CompositeController
 from humkit.controllers.controller_abc import ControllerABC
 from humkit.controllers.gravity_comp import GravityCompController
 from humkit.controllers.pd_control import PDController
-from humkit.error import ControllerError
+from humkit.error import ConfigError, ControllerError
 from humkit.robot import Robot
 
 
 def load_config(path: str | Path) -> dict[str, Any]:
     with open(path) as f:
-        return yaml.safe_load(f)
+        cfg = yaml.safe_load(f)
+    if not isinstance(cfg, dict):
+        raise ConfigError(f"{path}: expected a mapping at the top level, got {type(cfg).__name__}")
+    return cfg
 
 
 def build_controller(cfg: dict[str, Any], robot: Robot) -> ControllerABC:
