@@ -1,8 +1,8 @@
 import numpy as np
 
-from humkit.controllers.controller_abc import ControllerABC
+from humkit.controllers.controller_abc import ControllerABC, RobotLike
 from humkit.error import ControllerError
-from humkit.robot import Robot
+from humkit.types import FloatArray
 
 """Sums child controllers' outputs. All children must return joint torques (length nu)."""
 
@@ -13,7 +13,7 @@ class CompositeController(ControllerABC):
             raise ControllerError("composite controllers needs atleast one child controller")
         self.controllers = controllers
 
-    def compute(self, robot: Robot) -> np.ndarray:
+    def compute(self, robot: RobotLike) -> FloatArray:
         return sum(
             (c.compute(robot) for c in self.controllers),
             start=np.zeros(robot.nu),

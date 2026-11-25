@@ -19,3 +19,7 @@ class InvalidValueError(HumkitError, ValueError):
 
 class ControllerError(HumkitError):
     """A controller was misconfigured or produced invalid output."""
+
+
+class ConfigError(HumkitError, ValueError):
+    """A config file was malformed or had an invalid value."""

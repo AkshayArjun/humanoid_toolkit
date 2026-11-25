@@ -1,10 +1,8 @@
-import numpy as np
-
-from humkit.controllers.controller_abc import ControllerABC
-from humkit.robot import Robot
+from humkit.controllers.controller_abc import ControllerABC, RobotLike
+from humkit.types import FloatArray
 
 
 class GravityCompController(ControllerABC):
-    def compute(self, robot: Robot) -> np.ndarray:
+    def compute(self, robot: RobotLike) -> FloatArray:
         bias_torques = robot.bias_torques
         return bias_torques

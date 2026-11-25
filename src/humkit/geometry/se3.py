@@ -21,6 +21,7 @@ import numpy as np
 
 import humkit.geometry.geom_tools as gt
 from humkit.geometry.so3 import SO3
+from humkit.types import FloatArray
 
 
 @dataclass(frozen=True)
@@ -28,12 +29,12 @@ class SE3:
     """An element of SE(3): rotation R ∈ SO(3) and translation t ∈ ℝ³."""
 
     rotation: SO3
-    translation: np.ndarray
+    translation: FloatArray
 
     def __post_init__(self) -> None:
         if not isinstance(self.rotation, SO3):
             raise TypeError(f"rotation must be an SO3, got {type(self.rotation).__name__}")
-        t = np.array(self.translation, dtype=float)
+        t = np.array(self.translation, dtype=np.float64)
         if t.shape != (3,):
             raise ValueError(f"translation must have shape (3,), got {t.shape}")
         t.setflags(write=False)
@@ -46,26 +47,26 @@ class SE3:
     # --- exponential and logarithm maps -------------------------------------
 
     @classmethod
-    def Exp(cls, tau: np.ndarray) -> "SE3":  # noqa: N802
+    def Exp(cls, tau: FloatArray) -> "SE3":  # noqa: N802
         """ℝ⁶ → SE(3): twist τ = [ρ, θ] → pose ( Exp(θ), Jl(θ)·ρ )."""
-        tau = np.asarray(tau, dtype=float)
+        tau = np.asarray(tau, dtype=np.float64)
         if tau.shape != (6,):
             raise ValueError(f"tau must have shape (6,), got {tau.shape}")
         rho, theta = tau[:3], tau[3:]
         return cls(SO3.Exp(theta), gt.so3_left_jacobian(theta) @ rho)
 
-    def Log(self) -> np.ndarray:  # noqa: N802
+    def Log(self) -> FloatArray:  # noqa: N802
         """SE(3) → ℝ⁶: pose → twist τ = [ρ, θ], with ρ = Jl(θ)⁻¹·t."""
         theta = self.rotation.Log()
         rho = np.linalg.solve(gt.so3_left_jacobian(theta), self.translation)
         return np.concatenate([rho, theta])
 
     @classmethod
-    def exp(cls, tau_hat: np.ndarray) -> "SE3":
+    def exp(cls, tau_hat: FloatArray) -> "SE3":
         """se(3) → SE(3): exp(τ^) = Exp(τ)."""
         return cls.Exp(gt.se3_vee(tau_hat))
 
-    def log(self) -> np.ndarray:
+    def log(self) -> FloatArray:
         """SE(3) → se(3): log(M) = Log(M)^."""
         return gt.se3_hat(self.Log())
 
@@ -85,21 +86,21 @@ class SE3:
             self.translation + self.rotation.act(other.translation),
         )
 
-    def act(self, p: np.ndarray) -> np.ndarray:
+    def act(self, p: FloatArray) -> FloatArray:
         """Group action on a point: R·p + t."""
         return self.rotation.act(p) + self.translation
 
     # --- plus, minus and adjoint --------------------------------------------
 
-    def plus(self, tau: np.ndarray) -> "SE3":
+    def plus(self, tau: FloatArray) -> "SE3":
         """Right ⊕: M ∘ Exp(τ)."""
         return self @ SE3.Exp(tau)
 
-    def minus(self, other: "SE3") -> np.ndarray:
+    def minus(self, other: "SE3") -> FloatArray:
         """Right ⊖: Log(other⁻¹ ∘ self)."""
         return (other.inverse() @ self).Log()
 
-    def Adj(self) -> np.ndarray:  # noqa: N802
+    def Adj(self) -> FloatArray:  # noqa: N802
         """6×6 adjoint for τ = [ρ, θ]:  [[R, [t]×·R], [0, R]]."""
         R = self.rotation.to_matrix()  # noqa: N806
         out = np.zeros((6, 6))
@@ -110,7 +111,7 @@ class SE3:
 
     # --- conversions --------------------------------------------------------
 
-    def to_matrix(self) -> np.ndarray:
+    def to_matrix(self) -> FloatArray:
         """4×4 homogeneous matrix [[R, t], [0, 1]]."""
         M = np.eye(4)  # noqa: N806
         M[:3, :3] = self.rotation.to_matrix()

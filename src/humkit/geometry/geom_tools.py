@@ -8,12 +8,16 @@ quaternion Exp/Log from Table I (S³ row), Exp(θ) = exp(uθ/2).
 Small-angle series follow Sophus.
 """
 
+import math
+
 import numpy as np
+
+from humkit.types import FloatArray
 
 _EPS = 1e-8  # below this, use small-angle series to avoid dividing by ~0
 
 
-def hat(omega: np.ndarray) -> np.ndarray:
+def hat(omega: FloatArray) -> FloatArray:
     """ℝ³ → so(3): the skew-symmetric matrix with hat(a) @ b == a × b."""
     x, y, z = omega
     return np.array(
@@ -25,26 +29,26 @@ def hat(omega: np.ndarray) -> np.ndarray:
     )
 
 
-def vee(Omega: np.ndarray) -> np.ndarray:  # noqa: N803
+def vee(Omega: FloatArray) -> FloatArray:  # noqa: N803
     """so(3) → ℝ³. Inverse of hat."""
     return np.array([Omega[2, 1], Omega[0, 2], Omega[1, 0]])
 
 
-def quat_normalize(q: np.ndarray) -> np.ndarray:
+def quat_normalize(q: FloatArray) -> FloatArray:
     """Scale q to unit length."""
-    q = np.asarray(q, dtype=float)
+    q = np.asarray(q, dtype=np.float64)
     norm = np.linalg.norm(q)
     if norm < 1e-12:
         raise ValueError(f"Cannot normalise a near-zero quaternion: {q}")
     return q / norm
 
 
-def quat_conj(q: np.ndarray) -> np.ndarray:
+def quat_conj(q: FloatArray) -> FloatArray:
     """Conjugate (w, -x, -y, -z). For a unit quaternion this is the inverse."""
     return np.array([q[0], -q[1], -q[2], -q[3]])
 
 
-def quat_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+def quat_mul(a: FloatArray, b: FloatArray) -> FloatArray:
     """Quaternion product a ⊗ b: rotate by b first, then by a."""
     w1, v1 = a[0], a[1:]
     w2, v2 = b[0], b[1:]
@@ -53,9 +57,9 @@ def quat_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.concatenate([[w], v])
 
 
-def quat_exp(omega: np.ndarray) -> np.ndarray:
+def quat_exp(omega: FloatArray) -> FloatArray:
     """Exp: rotation vector ω ∈ ℝ³ → unit quaternion. q = (cos(θ/2), sin(θ/2)·u)."""
-    omega = np.asarray(omega, dtype=float)
+    omega = np.asarray(omega, dtype=np.float64)
     theta2 = float(np.dot(omega, omega))
     theta = np.sqrt(theta2)
     if theta < _EPS:
@@ -68,12 +72,12 @@ def quat_exp(omega: np.ndarray) -> np.ndarray:
     return np.concatenate([[real], imag * omega])
 
 
-def quat_log(q: np.ndarray) -> np.ndarray:
+def quat_log(q: FloatArray) -> FloatArray:
     """Log: unit quaternion → rotation vector ω ∈ ℝ³, with angle in [0, π]."""
-    q = np.asarray(q, dtype=float)
+    q = np.asarray(q, dtype=np.float64)
     if q[0] < 0.0:
         q = -q  # q and -q are the same rotation; pick the one with the short angle
-    w, v = q[0], q[1:]
+    w, v = float(q[0]), q[1:]
     n2 = float(np.dot(v, v))
     n = np.sqrt(n2)
     if n < _EPS:
@@ -84,7 +88,7 @@ def quat_log(q: np.ndarray) -> np.ndarray:
     return scale * v
 
 
-def quat_to_matrix(q: np.ndarray) -> np.ndarray:
+def quat_to_matrix(q: FloatArray) -> FloatArray:
     """Unit quaternion → 3×3 rotation matrix."""
     w, x, y, z = q
     return np.array(
@@ -96,34 +100,35 @@ def quat_to_matrix(q: np.ndarray) -> np.ndarray:
     )
 
 
-def quat_rotate(q: np.ndarray, v: np.ndarray) -> np.ndarray:
+def quat_rotate(q: FloatArray, v: FloatArray) -> FloatArray:
     """Rotate the 3-vector v by the unit quaternion q."""
-    return quat_to_matrix(q) @ np.asarray(v, dtype=float)
+    return quat_to_matrix(q) @ np.asarray(v, dtype=np.float64)
 
 
-def so3_left_jacobian(theta: np.ndarray) -> np.ndarray:
+def so3_left_jacobian(theta: FloatArray) -> FloatArray:
     """Left Jacobian of SO(3), Jl(θ). Also the V matrix in the SE(3) Exp.
 
     Jl = I + ((1 - cos a) / a²)·[θ]× + ((a - sin a) / a³)·[θ]×²,  a = |θ|
     """
-    theta = np.asarray(theta, dtype=float)
+    theta = np.asarray(theta, dtype=np.float64)
     a2 = float(np.dot(theta, theta))
-    a = np.sqrt(a2)
+    a = math.sqrt(a2)
     K = hat(theta)  # noqa: N806
+    eye: FloatArray = np.eye(3)
     if a < _EPS:
-        return np.eye(3) + 0.5 * K + (1.0 / 6.0) * (K @ K)
-    return np.eye(3) + ((1.0 - np.cos(a)) / a2) * K + ((a - np.sin(a)) / (a2 * a)) * (K @ K)
+        return eye + 0.5 * K + (1.0 / 6.0) * (K @ K)
+    return eye + ((1.0 - math.cos(a)) / a2) * K + ((a - math.sin(a)) / (a2 * a)) * (K @ K)
 
 
-def se3_hat(tau: np.ndarray) -> np.ndarray:
+def se3_hat(tau: FloatArray) -> FloatArray:
     """ℝ⁶ → se(3): twist [ρ, θ] → 4×4 matrix [[ [θ]×, ρ ], [0, 0]]."""
-    tau = np.asarray(tau, dtype=float)
+    tau = np.asarray(tau, dtype=np.float64)
     out = np.zeros((4, 4))
     out[:3, :3] = hat(tau[3:])
     out[:3, 3] = tau[:3]
     return out
 
 
-def se3_vee(Tau: np.ndarray) -> np.ndarray:  # noqa: N803
+def se3_vee(Tau: FloatArray) -> FloatArray:  # noqa: N803
     """se(3) → ℝ⁶. Inverse of se3_hat: returns [ρ, θ]."""
     return np.concatenate([Tau[:3, 3], vee(Tau[:3, :3])])
