@@ -225,7 +225,7 @@ Every day has the same four parts, so you always know what to read, what to buil
 - [ ] Implement damped least-squares IK for one hand: `dq = Jᵀ(JJᵀ + λ²I)⁻¹ e`.
 - [ ] Clamp to joint limits after every step.
 - [ ] Test convergence on 100 random reachable targets (generate them with FK from random `q`).
-- [ ] Time `np.linalg.inv` vs `np.linalg.solve` on the same system. Write down the Big-O of each step.
+- [x] Time `np.linalg.inv` vs `np.linalg.solve` on the same system. Write down the Big-O of each step.
 
 **Production path:**
 
