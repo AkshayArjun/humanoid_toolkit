@@ -11,6 +11,8 @@ from humkit.types import FloatArray
 class KinematicModel(Protocol):
     def fk(self, q: FloatArray) -> dict[str, SE3]: ...
     def jac(self, q: FloatArray, body: str) -> FloatArray: ...
+    @property
+    def joint_limits(self) -> tuple[FloatArray, FloatArray]: ...
 
 
 def world_error(current: SE3, target: SE3) -> FloatArray:
@@ -36,15 +38,14 @@ def ik(
     max_iters: int = 100,
     damping: float = 1e-2,
 ) -> tuple[FloatArray, bool]:
-    """Move the joints (not the floating base) until body reaches target.
 
-    Retus trnhe final q and whether the error norm got below tol.
-    """
+    lower, upper = robot.joint_limits
     q = np.array(q0, dtype=np.float64)
     for _ in range(max_iters):
         e = world_error(robot.fk(q)[body], target)
         if np.linalg.norm(e) < tol:
             return q, True
-        J = robot.jac(q, body)[:, 6:]  # noqa: N806
+        J = robot.jac(q, body)[:, 6:]
         q[7:] += dls_step(J, e, damping)
+        q[7:] = np.clip(q[7:], lower, upper)
     return q, False

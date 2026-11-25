@@ -83,6 +83,19 @@ class Robot:
         mj.mj_kinematics(self._model, self._temp)
 
     @property
+    def joint_limits(self) -> tuple[FloatArray, FloatArray]:
+        """(lower, upper) position limits of the actuated joints, in q[7:] order."""
+        m = self._model
+        joints = [j for j in range(m.njnt) if m.jnt_type[j] != mj.mjtJoint.mjJNT_FREE]
+        joints.sort(key=lambda j: int(m.jnt_qposadr[j]))
+        lower = np.full(len(joints), -np.inf)
+        upper = np.full(len(joints), np.inf)
+        for i, j in enumerate(joints):
+            if m.jnt_limited[j]:
+                lower[i], upper[i] = m.jnt_range[j]
+        return lower, upper
+
+    @property
     def joint_names(self) -> list[str]:
         return [
             self._model.joint(i).name
