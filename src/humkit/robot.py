@@ -18,6 +18,7 @@ class Robot:
     def __init__(self, model: mj.MjModel, name: str | None = None):
         self._model = model
         self._data = mj.MjData(self._model)
+        mj.mj_forward(self._model, self._data)  # fill poses and forces from the initial qpos
         self._temp = mj.MjData(self._model)
         self._body_names = [str(model.body(i).name) for i in range(model.nbody)]
         self._name = name if name is not None else self._model.name
