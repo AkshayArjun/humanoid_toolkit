@@ -22,10 +22,10 @@ def world_error(current: SE3, target: SE3) -> FloatArray:
     return np.concatenate([e_lin, e_ang])
 
 
-def dls_step(J: FloatArray, e: FloatArray, damping: float) -> FloatArray:  # noqa: N803
+def dls_step(J: FloatArray, e: FloatArray, damping: float) -> FloatArray:
     """dq = Jᵀ (J Jᵀ + λ² I)⁻¹ e"""
-    I = np.eye(J.shape[0])  # noqa: N806, E741
-    step: FloatArray = J.T @ np.linalg.solve(J @ J.T + damping**2 * I, e)
+    eye = np.eye(J.shape[0])
+    step: FloatArray = J.T @ np.linalg.solve(J @ J.T + damping**2 * eye, e)
     return step
 
 
