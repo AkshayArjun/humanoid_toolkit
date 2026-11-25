@@ -100,7 +100,31 @@ def test_jacobian_predicts_small_motions(free_g1):
     dq[6:] = rng.uniform(-1.0, 1.0, 29) * 1e-6
     q_next = q.copy()
     q_next[7:] += dq[6:]
-    before = free_g1.forward_kinematics(q)["left_wrist_yaw_link"].translation
-    after = free_g1.forward_kinematics(q_next)["left_wrist_yaw_link"].translation
+    before = free_g1.fk(q)["left_wrist_yaw_link"].translation
+    after = free_g1.fk(q_next)["left_wrist_yaw_link"].translation
     jac = body_jacobian(tree, q, "left_wrist_yaw_link")
     assert_allclose(after - before, jac[:3] @ dq, atol=1e-10)
+
+
+def test_robot_jac_matches_reference(free_g1):
+    tree = KinematicTree.from_robot(free_g1)
+    rng = np.random.default_rng(2)
+    for _ in range(20):
+        q = rng.uniform(-1.0, 1.0, 36)
+        q[3:7] /= np.linalg.norm(q[3:7])
+        for body in BODIES:
+            assert_allclose(free_g1.jac(q, body), body_jacobian(tree, q, body), atol=1e-9)
+
+
+def test_robot_jac_does_not_touch_live_state(free_g1):
+    free_g1.set_state(free_g1.q, np.zeros(35))
+    q_before = free_g1.q
+    q_query = np.zeros(36)
+    q_query[3] = 1.0  # identity base orientation
+    free_g1.jac(q_query, "left_wrist_yaw_link")
+    assert_allclose(free_g1.q, q_before, atol=0)
+
+
+def test_robot_jac_unknown_body_raises(free_g1):
+    with pytest.raises(KeyError):
+        free_g1.jac(free_g1.q, "no_such_body")

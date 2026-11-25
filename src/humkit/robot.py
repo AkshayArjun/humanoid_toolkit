@@ -60,17 +60,27 @@ class Robot:
         body = self._data.body(name)
         return SE3(SO3(body.xquat.copy()), body.xpos.copy())
 
-    def forward_kinematics(self, q: FloatArray) -> dict[str, SE3]:
-        q = np.asarray(q, dtype=np.float64)
-        if q.shape != (self._model.nq,):
-            raise StateDimensionError(f"Expected q of shape ({self._model.nq},), got {q.shape}")
-
-        self._temp.qpos[:] = q
-        mj.mj_kinematics(self._model, self._temp)
+    def fk(self, q: FloatArray) -> dict[str, SE3]:
+        self._load_temp(q)
         return {
             name: SE3(SO3(self._temp.xquat[i]), self._temp.xpos[i])
             for i, name in enumerate(self._body_names)
         }
+
+    def jac(self, q: FloatArray, body: str) -> FloatArray:
+        self._load_temp(q)
+        mj.mj_comPos(self._model, self._temp)
+        jacp = np.zeros((3, self._model.nv))
+        jacr = np.zeros((3, self._model.nv))
+        mj.mj_jacBody(self._model, self._temp, jacp, jacr, self._model.body(body).id)
+        return np.vstack([jacp, jacr])
+
+    def _load_temp(self, q: FloatArray) -> None:
+        q = np.asarray(q, dtype=np.float64)
+        if q.shape != (self._model.nq,):
+            raise StateDimensionError(f"Expected q of shape ({self._model.nq},), got {q.shape}")
+        self._temp.qpos[:] = q
+        mj.mj_kinematics(self._model, self._temp)
 
     @property
     def joint_names(self) -> list[str]:

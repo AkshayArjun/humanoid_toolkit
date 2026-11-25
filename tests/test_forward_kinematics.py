@@ -24,7 +24,7 @@ def test_matches_reference_fk(free_g1):
     rng = np.random.default_rng(1)
     for _ in range(50):
         q = random_q(rng)
-        poses = free_g1.forward_kinematics(q)
+        poses = free_g1.fk(q)
         expected = fk_topological(tree, q)
         assert poses.keys() == expected.keys()
         for name, pose in poses.items():
@@ -39,7 +39,7 @@ def test_does_not_touch_live_state(free_g1):
     q_before = free_g1.q
     pelvis_before = free_g1.body_pose("pelvis")
 
-    free_g1.forward_kinematics(random_q(rng))
+    free_g1.fk(random_q(rng))
 
     assert_allclose(free_g1.q, q_before, atol=0)
     assert_allclose(free_g1.body_pose("pelvis").translation, pelvis_before.translation, atol=0)
@@ -47,9 +47,9 @@ def test_does_not_touch_live_state(free_g1):
 
 def test_returned_poses_do_not_change_on_the_next_call(free_g1):
     rng = np.random.default_rng(3)
-    first = free_g1.forward_kinematics(random_q(rng))["left_wrist_yaw_link"]
+    first = free_g1.fk(random_q(rng))["left_wrist_yaw_link"]
     saved = first.translation.copy()
-    free_g1.forward_kinematics(random_q(rng))
+    free_g1.fk(random_q(rng))
     assert_allclose(first.translation, saved, atol=0)
 
 
@@ -57,7 +57,7 @@ def test_base_at_q_with_joints_zero(free_g1):
     q = np.zeros(36)
     q[0:3] = [1.0, 2.0, 0.5]
     q[3] = 1.0
-    poses = free_g1.forward_kinematics(q)
+    poses = free_g1.fk(q)
     assert_allclose(poses["world"].translation, [0.0, 0.0, 0.0])
     assert_allclose(poses["pelvis"].translation, [1.0, 2.0, 0.5])
     # g1.xml: left_hip_pitch_link pos="0 0.064452 -0.1027" relative to the pelvis
@@ -67,4 +67,4 @@ def test_base_at_q_with_joints_zero(free_g1):
 @pytest.mark.parametrize("bad_q", [0.5, np.zeros(35), np.zeros(37), np.zeros((36, 1))])
 def test_wrong_shape_raises(free_g1, bad_q):
     with pytest.raises(StateDimensionError):
-        free_g1.forward_kinematics(bad_q)
+        free_g1.fk(bad_q)
