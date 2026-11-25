@@ -221,7 +221,7 @@ Every day has the same four parts, so you always know what to read, what to buil
 
 **Waypoints:**
 
-- [ ] Compute the geometric Jacobian of a hand from your tree. Compare it with `mj_jacBody`.
+- [x] Compute the geometric Jacobian of a hand from your tree. Compare it with `mj_jacBody`.
 - [ ] Implement damped least-squares IK for one hand: `dq = Jᵀ(JJᵀ + λ²I)⁻¹ e`.
 - [ ] Clamp to joint limits after every step.
 - [ ] Test convergence on 100 random reachable targets (generate them with FK from random `q`).
