@@ -198,9 +198,9 @@ Every day has the same four parts, so you always know what to read, what to buil
 
 - [x] Write a `Link` node class (name, parent, children, joint axis, offset pose as `SE3`).
 - [x] Read the body tree from MjModel (body\_parentid, body\_pos, body\_quat, jnt\_axis) into a tree of `Link`s. Print it as an indented tree.
-- [ ] Write recursive DFS forward kinematics, then rewrite it with an explicit stack. Compare them.
-- [ ] Compute a topological order once and do FK as one loop over it. That's the fast version.
-- [ ] Test: every body's pose matches MuJoCo's `xpos`/`xquat` to 1e-9 for 50 random joint configurations.
+- [x] Write recursive DFS forward kinematics, then rewrite it with an explicit stack. Compare them.
+- [x] Compute a topological order once and do FK as one loop over it. That's the fast version.
+- [x] Test: every body's pose matches MuJoCo's `xpos`/`xquat` to 1e-9 for 50 random joint configurations.
 
 **Production path:**
 
